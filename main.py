@@ -6,7 +6,7 @@ about_page = st.Page(page = "About/about_me.py",
                      icon="👤",#"Images/home_icon.png",
                      default = True,)
 
-project_1_page = st.Page(page="Projects/Proj_01.py",
+project_1_page = st.Page(page="Projects/Cls_Proj_01.py",
                          title = "Dashboard",
                          icon = "",)
 
@@ -18,7 +18,7 @@ pg = st.navigation({
                 )
 
 # ------- GLOBAL PAGE SETUP --------------- #
-st.logo("Images/Logo3.png", size="large")
+st.logo("Images/Logo4.png", size="large")
 st.sidebar.text("Making numbers sing!")
 
 

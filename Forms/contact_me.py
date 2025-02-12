@@ -2,7 +2,7 @@ import streamlit as st
 import re
 import requests
 
-WEBHOOK_URL = ""
+WEBHOOK_URL = "https://connect.pabbly.com/workflow/sendwebhookdata/IjU3NjYwNTZlMDYzMzA0Mzc1MjY1NTUzMDUxM2Ei_pc"
 
 def is_valid_email(email):
     # Regex pattern for email validation
@@ -42,8 +42,9 @@ def show_contact_form():
                     'first_name': fname,
                     'surname': sname,
                     'message': message}
-            response = requests.post(WEBHOOK_URL, json=data)
+            response = requests.post(WEBHOOK_URL, 
+                                     json=data)
             if response.status_code== 200:
                 st.success(":white_check_mark: Message sent successfully")
             else:
-                st.error(":heavy_exclamation_mark: ")
+                st.error(":heavy_exclamation_mark: There was an error sending your message :heavy_exclamation_mark:")
