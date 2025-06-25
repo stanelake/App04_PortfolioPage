@@ -8,10 +8,10 @@ about_page = st.Page(page = "About/about_me.py",
 
 project_1_page = st.Page(page="Projects/Cls_Proj_01.py",
                          title = "Iris Flower Classification",
-                         icon = "",)
+                         icon = "🌼",)
 project_2_page = st.Page(page="Projects/TS_Proj01_tickerPlot.py",
                          title = "Econometric Analysis",
-                         icon = "",)
+                         icon = "📈",)
 
 # ------ NAVIGATION SETUP WITH SECTIONS----- #
 pg = st.navigation({

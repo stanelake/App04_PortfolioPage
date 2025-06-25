@@ -20,23 +20,23 @@ def show_contact_form():
 
         if submit_button:
             if not WEBHOOK_URL:
-                st.error(":heavy_exclamation_mark: Email Servivce is not setup yet. Please try again later")
+                st.error("❗ Email Servivce is not setup yet. Please try again later")
                 st.stop()
                 
             if not fname:
-                st.error(":heavy_exclamation_mark: Please provide your first name")
+                st.error("❗ Please provide your first name")
                 st.stop()
                 
             if not sname:
-                st.error(":heavy_exclamation_mark: Please provide your surname")
+                st.error("❗ Please provide your surname")
                 st.stop()
                 
             if not email:
-                st.error(":heavy_exclamation_mark: Please provide your email. :email:")
+                st.error("❗ Please provide your email. 📧")
                 st.stop()
                 
             if not message:
-                st.error(":heavy_exclamation_mark: Please provide a message.")
+                st.error("❗ Please provide a message.")
                 st.stop()
             data = {'email': email,
                     'first_name': fname,
@@ -45,6 +45,6 @@ def show_contact_form():
             response = requests.post(WEBHOOK_URL, 
                                      json=data)
             if response.status_code== 200:
-                st.success(":white_check_mark: Message sent successfully")
+                st.success("✅ Message sent successfully")
             else:
-                st.error(":heavy_exclamation_mark: There was an error sending your message :heavy_exclamation_mark:")
+                st.error("❗ There was an error sending your message ❗")

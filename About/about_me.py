@@ -17,7 +17,7 @@ with col2:
             -	Keen on a data-driven career that employs computing and mathematical skills.
         """
         )
-    if st.button(":mailbox_with_mail: Contact Me"):
+    if st.button("📧 Contact Me"):
         show_contact_form()
 
 # --- EXPERIENCE & QUALIFICATIONS
