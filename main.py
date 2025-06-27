@@ -6,10 +6,13 @@ about_page = st.Page(page = "About/about_me.py",
                      icon="👤",#"Images/home_icon.png",
                      default = True,)
 
-project_1_page = st.Page(page="Projects/Cls_Proj_01.py",
+project_1_page = st.Page(page="Projects/Cls_Proj1_Iris/Cls_Proj_01.py",
                          title = "Iris Flower Classification",
                          icon = "🌼",)
-project_2_page = st.Page(page="Projects/TS_Proj01_tickerPlot.py",
+project_2_page = st.Page(page="Projects/TS_Proj1_Analysis/TS_Proj01_tickerPlot.py",
+                         title = "Econometric Analysis",
+                         icon = "📈",)
+project_3_page = st.Page(page="Projects/TS_Proj2_Forecasting/TS_Proj02_Forecast.py",
                          title = "Econometric Analysis",
                          icon = "📈",)
 

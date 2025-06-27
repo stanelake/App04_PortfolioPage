@@ -33,56 +33,161 @@ quarterly_list = ['GDPC1', 'INDPRO', 'NCBEILQ027S']
 ####################################
 # FETCH MACRO DATA FROM FRED DATABASE
 ####################################
-def extend_quarterly_to_monthly(df,series_id):
+def extend_quarterly_to_monthly(df):
     """
     Extends quarterly data to monthly using forward-fill.
-    """
-    if isinstance(df, pd.Series):
-        df = df.to_frame()
-    all_months = pd.date_range(df['date'].min(), df['date'].max(), freq='MS')  # Monthly start dates
-    df = df.set_index("date").reindex(all_months).ffill().reset_index()
-    df.rename(columns={"index": "date"}, inplace=True)
-    return df
 
-def get_FredData0(series_id, api_key, start= None,end=None, data_freq = 'm'):
-    fred = fredapi.Fred(api_key)
-    print(f'Lets download ...{series_id}')
+    Parameters:
+        df (DataFrame): A Pandas DataFrame containing quarterly data. 
+                        It must have a column named 'date' with datetime values.
+
+    Returns:
+        DataFrame: A DataFrame with monthly data, where the values from the
+                   quarterly data are forward-filled to fill missing months.
+
+    Example:
+        If quarterly data includes rows for March, June, September, and December,
+        this function will fill intermediate months (e.g., April and May) with
+        the March data values.
+    """
+    # Ensure 'date' column is of datetime type
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+
+    # Drop rows with invalid or missing 'date' values
+    df = df.dropna(subset=['date'])
+
+    # Generate a complete range of monthly start dates
+    all_months = pd.date_range(start=df['date'].min(), end=df['date'].max(), freq='MS')
+
+    # Reindex to include all months and forward-fill missing data
+    df = (
+        df.set_index("date")
+        .reindex(all_months)
+        .ffill()
+        .infer_objects()
+        .reset_index()
+    )
+
+    # Rename the index column to 'date'
+    df.rename(columns={"index": "date"}, inplace=True)
+
+    return df
+def get_FredData(series_id, api_key, start,end, data_freq = 'm'):
+    """
+    Fetches data from the FRED (Federal Reserve Economic Data) API or a local CSV file.
+
+    Parameters:
+        series_id (str): The FRED series identifier (e.g., 'GDP' for Gross Domestic Product).
+        api_key (str): Your API key for accessing the FRED API.
+        start (str): The start date for the data in 'YYYY-MM-DD' format.
+        end (str): The end date for the data in 'YYYY-MM-DD' format.
+        data_freq (str): The frequency of data retrieval ('m' for monthly, 'q' for quarterly).
+                         Defaults to 'm'.
+
+    Returns:
+        DataFrame: A DataFrame with the requested data containing two columns:
+                   - 'date': The observation dates as datetime values.
+                   - 'value': The series data for the corresponding dates.
+
+                   If the series is quarterly, the data is extended to monthly using forward-fill.
+
+    Notes:
+        - If the request to the FRED API is successful, the data is fetched and converted into
+          a Pandas DataFrame.
+        - If the series is defined as quarterly, it will be transformed into monthly data.
+        - Errors during API requests are printed to the console.
+
+    Example:
+        data = get_FredData("GDP", "your_api_key", "1950-01-01", "2020-12-31")
+    # https://www.youtube.com/watch?v=M_jswxN3iwI&t=18s
+    """
+    base_url    = 'https://api.stlouisfed.org/fred/series/observations'
+    series_id   = series_id
     if series_id in quarterly_list:
         data_freq = 'q'
-    df = fred.get_series(series_id,frequency= data_freq)
-    df = df.reset_index().rename(columns={0: series_id, "index": "date"})
-    df['date'] = pd.to_datetime(df['date'], format='%Y%m')
+    obs_params = {
+        'series_id': series_id,
+        'api_key': api_key,
+        'file_type': 'json',
+        'observation_start': start,
+        'observation_end': end,
+        'frequency': data_freq
+        }
+    # make request
+    response = requests.get(base_url,
+                            params=obs_params)
+    # Check response
+    df = None
+    if response.status_code == 200:
+        print(f'Lets download {series_id}')
+        data = response.json()
+        df = pd.DataFrame(data['observations'])
+        #df['date'] = pd.to_datetime(df['date'])
+        #df.value = df.value.astype('float')
+        df = df[['date','value']]
+        #df.to_csv(file_path, index=False)
+        #print(df.head())  # Print retrieved data        
+        if series_id in quarterly_list:
+            df = extend_quarterly_to_monthly(df)            
+    else:
+        print(f"Error {response.status_code}: {response.text}")  # Print error message            
     if series_id in quarterly_list:
-        df = extend_quarterly_to_monthly(df,series_id)
-    df = df.set_index("date")  
-    #df["date"] = df.index.strftime("%Y%m").astype(int)
+        df = extend_quarterly_to_monthly(df)
     return df
 
-def get_economic_data(start_date= '1957-03-01', end_date= '2020-12-31'):
+def get_economic_data(start_date  = '1957-03-01', end_date = '2020-12-31'):
+    """
+    Retrieves economic data for a specified date range either from a local CSV file
+    or by downloading it from the FRED API.
+
+    Returns:
+        DataFrame: A DataFrame containing economic data for multiple series. 
+                   Derived indicators like the credit spread ('csp') are also computed.
+
+    Notes:
+        - If a local file named 'EconomicData.csv' exists in the data directory, 
+          the data is loaded from this file.
+        - If the file does not exist, the function fetches data from the FRED API
+          for a predefined list of series identifiers (`series_tickers`) and merges the results.
+
+    Additional Computations:
+        - The function computes the credit spread ('csp') if both 'BAA' and 'AAA' series
+          are present in the data. The credit spread is calculated as:
+            csp = BAA - AAA
+
+    Example:
+        df = get_economic_data()
+
+    Dependencies:
+        - Requires a valid FRED API key via the `Fred_API_key()` function.
+        - Requires the list of series identifiers in `series_tickers`.
+        - Requires a defined `DATA_DIR` for file operations.
+    """
     fname = 'EconomicData.csv'
     file_path = os.path.join(DATA_DIR,fname)
     if os.path.exists(file_path):
         df = pd.read_csv(file_path, parse_dates=["date"])  # Load from CSV
         return df
     else:    
-        from my_key import Fred_API_key
         API_KEY = Fred_API_key()
         df = None
         for series_id in series_tickers:
-            temp = get_FredData0(series_id,API_KEY,start_date,end_date)
+            temp = get_FredData(series_id,API_KEY,start_date,end_date)
             if temp is not None:
+                temp = temp.rename(columns={'value': series_id})
+                print(temp.shape)
+                print('%%%%%%%%%%%%%%%%%%%%%%%')
+                temp['date'] = pd.to_datetime(temp['date'], errors='coerce')
                 if df is None:
-                    df = temp.copy()
+                    df = temp
                 else:
-                    df = pd.concat([df, temp], axis=1)
-    print(df.dropna().info())
+                    df = df.merge(temp, on='date', how = 'inner')
+    
     #   Computes derived indicators like credit spread."""
     if (('BAA' in df.columns) and ('AAA' in df.columns)):
         df['BAA'] = df['BAA'].astype(float) 
         df['AAA'] = df['AAA'].astype(float)
         df['csp'] = df['BAA'] - df['AAA']  # 15 Credit Spread
-    df = df.reset_index()
-    df.to_csv(file_path,index=False)
     return df
 
 ####################################
@@ -152,7 +257,7 @@ def regress_on_mkt(data, snp500, ticker, window_size=60):
     if f"{ticker}.mom1m" not in data.columns:
         raise ValueError(f"Column '{ticker}.mom1m' is missing from the input data.")
     # Ensure data is properly copied to avoid modifying the original DataFrame
-    data1 = data[['date', 'MMM.Ret', 'MMM.mom1m']].copy()
+    data1 = data[['date', f'{ticker}.Ret', f'{ticker}.mom1m']].copy()
     data1 = data1.merge(snp500[['date',f'{snpTicker}.Ret']], 
                         on='date', how = 'inner')
     # Add market return lags
@@ -312,7 +417,7 @@ def fetch_yahoo_data(ticker= 'MMM', START_DATE='2000-03-01', END_DATE = '2015-12
         print(f"An error occurred: {e}")
         return None
 
-def compile_data(ticker='MMM', start_date='1990-01-01', end_date='2015-12-31'):
+def compile_data(ticker='MMM', start_date='2000-03-01', end_date='2015-12-31'):
     """
     Compiles data from multiple sources (firm-level data, market data, and macroeconomic data)
     into a single DataFrame, aligned by date.
@@ -380,9 +485,10 @@ def compile_data(ticker='MMM', start_date='1990-01-01', end_date='2015-12-31'):
 if __name__ == '__main__':
     os.makedirs(DATA_DIR, exist_ok=True)
     start_date  = '1990-03-01'
-    end_date    = '2024-12-31'
+    end_date    = '1999-12-31'
     ticker      = 'MMM'
-    data_df = compile_data(ticker, end_date)
+    data_df = compile_data(ticker= 'MMM',
+                           start_date='2000-03-01', end_date = '2015-12-31')
     colz = list(data_df.columns)
     print(len(colz))
     print('%%%%%%%%%%%%%%%%%%%%%%%')
