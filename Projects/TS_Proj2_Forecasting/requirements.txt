@@ -1,0 +1,11 @@
+Python 3.x
+
+yfinance for stock market data
+
+fredapi for fetching FRED economic indicators
+
+pandas and numpy for data manipulation
+
+requests for API calls
+
+statsmodels for statistical analysis
