@@ -413,7 +413,7 @@ st.write("""
          - This app trains and diploys a models to forecast stock prices using historical data.
          - It aims to reproduce the results from "Empirical Asset Pricing via Machine Learning" by Gu, Kelly, and Xiu (2020).
          - It uses a combination of macroeconomic indicators and ticker-specific features to predict future stock prices
-         - The app allows users to choose between a default analysis of Apple Inc. (AAPL) or a custom ticker analysis.
+         - The app allows users to choose between a default analysis of Microsoft (MSFT) or a custom ticker analysis.
 
          """)
 
@@ -435,4 +435,4 @@ if default_analysis or data_check:
     st.write("A view of the data available.")
     st.dataframe(df.head())
     st.write(f"Total number of rows: {len(df)}")
-    st.write("This section will contain the analysis and forecasting results for AAPL stock prices.")
+    st.write("This section will contain the analysis and forecasting results for MSFT stock prices.")
