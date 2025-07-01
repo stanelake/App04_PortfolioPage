@@ -432,5 +432,7 @@ if feature_check:
 if default_analysis or data_check:
     st.subheader("Microsoft Stock Price Forecasting")
     df = data_loading(ticker = 'MSFT')
+    st.write("A view of the data available.")
     st.dataframe(df.head())
+    st.write(f"Total number of rows: {len(df)}")
     st.write("This section will contain the analysis and forecasting results for AAPL stock prices.")
