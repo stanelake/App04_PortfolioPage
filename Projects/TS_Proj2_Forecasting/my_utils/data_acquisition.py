@@ -2,13 +2,8 @@ import pandas as pd
 import numpy as np
 import requests
 import fredapi
-from fred import Fred
 import os
 import yfinance as yf
-import pandasdmx as sdmx
-from io import BytesIO
-import zipfile
-import pytz
 from bs4 import BeautifulSoup
 from my_key import Fred_API_key
 
@@ -137,9 +132,7 @@ def get_FredData(series_id, api_key, start,end, data_freq = 'm'):
         df = extend_quarterly_to_monthly(df)
     return df
 
-def get_economic_data():
-    start_date  = '1957-03-01'
-    end_date    = '2020-12-31'
+def get_economic_data(start_date  = '1957-03-01', end_date    = '2020-12-31'):    
     fname = 'EconomicData.csv'
     file_path = os.path.join(DATA_DIR,fname)
     if os.path.exists(file_path):
@@ -158,11 +151,11 @@ def get_economic_data():
                 else:
                     df = df.merge(temp, on='date', how = 'inner')
     
-    #   Computes derived indicators like credit spread."""
-    if 'BAA' in df.columns and 'AAA' in df.columns:
-        df['csp'] = df['BAA'] - df['AAA']  # 15 Credit Spread
+        #   Computes derived indicators like credit spread."""
+        if 'BAA' in df.columns and 'AAA' in df.columns:
+            df['csp'] = df['BAA'] - df['AAA']  # 15 Credit Spread
+        df.to_csv(file_path,index=False)
     print(df.head())
-    df.to_csv(file_path,index=False)
     return df
 
 def fetch_yahoo_data(ticker= 'AAPL', START_DATE='1957-03-01', END_DATE = '1960-12-31',
@@ -221,79 +214,11 @@ def fetch_yahoo_data(ticker= 'AAPL', START_DATE='1957-03-01', END_DATE = '1960-1
         return None
 
 
-def download_fama_french(url):
-    """Download and extract Fama-French ZIP file."""
-    print(f"📥 Downloading {url}...")
-    response = requests.get(url)
-    if response.status_code == 200:
-        with zipfile.ZipFile(BytesIO(response.content)) as z:
-            for file in z.namelist():
-                if file.endswith(".txt"):  # Extract text file
-                    with z.open(file) as f:
-                        return f.read().decode("latin1")
-    print("❌ Failed to download data.")
-    return None
-
-
-def parse_fama_french(text_data):
-    """Parse Fama-French data from text file."""
-    lines = text_data.split("\n")
-    start_line = None
-
-    # Identify where the data starts
-    for i, line in enumerate(lines):
-        if line.strip() and line.split()[0].isdigit():
-            start_line = i
-            break
-
-    # Read data from start line onwards
-    if start_line is not None:
-        df = pd.read_csv(BytesIO("\n".join(lines[start_line:]).encode()), delim_whitespace=True)
-        df.rename(columns={df.columns[0]: "yyyymm"}, inplace=True)
-        df["date"] = pd.to_datetime(df["yyyymm"].astype(str), format="%Y%m")
-        df.drop(columns=["yyyymm"], inplace=True)
-        return df
-
-    print("❌ Data parsing failed.")
-    return None
-
-
-def get_fama_french_data(fama_french_path):
-    """Check local file, download if missing, and parse data."""
-    if os.path.exists(fama_french_path):
-        print(f"✅ Using cached Fama-French data: {fama_french_path}")
-        return pd.read_csv(fama_french_path, parse_dates=["date"])
-
-    print("🔄 No local Fama-French data found. Fetching...")
-
-    data_frames = []
-    
-    for name, url in FAMA_FRENCH_URLS.items():
-        text_data = download_fama_french(url)
-        if text_data:
-            df = parse_fama_french(text_data)
-            if df is not None:
-                df.rename(columns={df.columns[1]: name}, inplace=True)
-                data_frames.append(df)
-
-    if data_frames:
-        df_final = data_frames[0]
-        for df in data_frames[1:]:
-            df_final = df_final.merge(df, on="date", how="outer")
-
-        # Save to CSV
-        df_final.to_csv(fama_french_path, index=False)
-        print(f"✅ Fama-French data saved: {fama_french_path}")
-        return df_final
-    else:
-        print("❌ No Fama-French data retrieved.")
-        return None
-
 def get_sp500_tickers():
     """
     Fetches the list of S&P 500 tickers from Wikipedia.
     Returns: list of tickers
-    """"
+    """
     res = requests.get("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
     soup = BeautifulSoup(res.content,'html')
     table = soup.find_all('table')[0] 
@@ -301,34 +226,54 @@ def get_sp500_tickers():
     tickers = list(df[0].Symbol)
     return tickers
 
-def get_history(ticker, period_start, period_end, granularity="1d", tries=0):
-    try:
-        df = yf.Ticker(ticker).history(
-            start=period_start,
-            end=period_end,
-            interval=granularity,
-            auto_adjust=True
-        ).reset_index()
-    except Exception as err:
-        if tries < 5:
-            return get_history(ticker, period_start, period_end, granularity, tries+1)
-        return pd.DataFrame()
-    
-    df = df.rename(columns={
-        "Date":"date",
-        "Open":"open",
-        "High":"high",
-        "Low":"low",
-        "Close":"close",
-        "Volume":"volume"
-    })
-    if df.empty:
-        return pd.DataFrame()
-    
-    df["datetime"] = df["datetime"].dt.tz_localize(pytz.utc)
-    df = df.drop(columns=["Dividends", "Stock Splits"])
-    df = df.set_index("datetime",drop=True)
-    return df
+def get_data(start='1990-01-01',end='2024-12-31',ticker='AAPL'):
+    """
+    Fetches economic data and stock data for a given ticker.
+    Returns a DataFrame with the following columns:
+        - date: The date of the data point.
+        - {ticker}: Adjusted closing price for the ticker.
+        - {ticker}.M18: 18-month rolling mean of adjusted closing price.
+        - {ticker}.M36: 36-month rolling mean of adjusted closing price.
+        - {ticker}.S18: 18-month rolling standard deviation.
+        - {ticker}.S36: 36-month rolling standard deviation.
+        - {ticker}BBU: Upper Bollinger Band (mean + 2 standard deviations).
+        - {ticker}BBL: Lower Bollinger Band (mean - 2 standard deviations).
+        - {ticker}.E12: 12-period exponential moving average.
+        - {ticker}.E26: 26-period exponential moving average.
+        - {ticker}.Ret: Logarithmic returns.
+        - {ticker}.Vol: Rolling annualized volatility (252 trading days).   
+    """     
+    fname = f'ModellingData{ticker}.csv'
+    file_path = os.path.join(DATA_DIR,fname)
+    if os.path.exists(file_path):
+        df = pd.read_csv(file_path, parse_dates=["date"])  # Load from CSV
+        return df
+    else:
+        macro = get_economic_data(start_date, end_date)
+        print(macro.shape)
+        print('%%%%%%%%%%%%%%%%%%%%%%%')
+        snp500 = fetch_yahoo_data(ticker='^GSPC',
+                                START_DATE=start_date, END_DATE=end_date)
+        print(snp500.shape)   
+        print(f"Fetching data for {ticker} from Yahoo Finance...")
+        print('%%%%%%%%%%%%%%%%%%%%%%%')
+        firm = fetch_yahoo_data(ticker=ticker,
+                                START_DATE=start_date, END_DATE=end_date,
+                                technicals=True,
+                                snp500=snp500)
+        print(firm.shape)
+        print('%%%%%%%%%%%%%%%%%%%%%%%')
+        macro.set_index("date", inplace=True)
+        firm.set_index("date", inplace=True)
+        snp500.set_index("date", inplace=True)
+        # Perform a join instead of concat to match dates
+        result = firm.join(snp500, how="left")
+        result = result.join(macro, how="left")
+        print(result.head())
+        # Save your DataFrame to a CSV file
+        result.to_csv(file_path, index=True)
+    return result
+
 if __name__ == '__main__':
     os.makedirs(DATA_DIR, exist_ok=True)
     start_date  = '1957-03-01'

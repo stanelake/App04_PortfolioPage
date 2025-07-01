@@ -252,7 +252,6 @@ st.markdown(
 st.markdown(
     """
     <div class="project-title">Iris Flower Classifier</div>
-    <div class="project-by">Project by Zororo S. Makumbe</div>
     """,
     unsafe_allow_html=True
 )

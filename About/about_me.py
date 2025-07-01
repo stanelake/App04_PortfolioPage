@@ -24,28 +24,65 @@ with col2:
 st.write("\n")
 st.subheader("Qualifications:", anchor=False)
 st.write("""
-            - Ph.D. in Mathematics and Computing, _Universitat de Barcelona_
-                - **Relevant Skills**: Stochastic modelling, Monte Carlo Simulation, data analysis, hypothesis testing, Python programming, public speaking, report writing, collaboration, time management.
+            - Ph.D. in Mathematics and Computing, (Excellent) _Universitat de Barcelona_
+            - MSc Data Science, (Distinction) _Edith Cowan University_ 
+            - MSc Financial Engineering, (Higher Distinction) _WorldQuant University_
+         """)   
+st.subheader("Technical Skills:", anchor=False)    
+import streamlit as st
 
-         """)
-         
-st.write("""
-            - MSc Data Science, _Edith Cowan University_ 
-                - **Relevant Units**: Biostatistics, Time series forecasting, Applied Multivariate Statistics, Data Analysis and Visualisation
-                - **Relevant Skills**: Data manipulation, data visualisation, statistical software (R, Python), statistical inference, research methodologies, statistical analysis, computational techniques, data modelling, machine learning, report writing in Microsoft Word, and PowerPoint presentation, project management
+# Create three columns
+col1, col2, col3 = st.columns(3)
 
-         """)         
+with col1:
+    st.markdown("#### Stochastic Analysis")
+    st.markdown("""
+- Stochastic modelling  
+- Stochastic differential equations  
+- Monte Carlo simulation  
+- Options pricing  
+- Lévy processes  
+- Model calibration  
+""")
 
-st.write("""
-            - MSc Financial Engineering, _WorldQuant University_
-                - **Relevant Units**: Econometrics, Computational Finance, Machine Learning in Finance, Portfolio Theory and Asset Pricing, and Case studies in Risk Management
-                - **Relevant Skills**: Financial data analysis, asset pricing in Python, machine learning, deep learning, Problem-Solving, Critical Thinking, Communication, Collaboration, Project Management, 
+with col2:
+    st.markdown("#### Financial Engineering")
+    st.markdown("""
+- Financial data analysis  
+- Asset pricing in Python  
+- Risk management  
+- Computational techniques  
+- Econometrics  
+- Programming in Python, R  
+""")
 
-         """)
+with col3:
+    st.markdown("#### Data Science")
+    st.markdown("""
+- Data manipulation & visualisation  
+- Statistical software (R, Python)  
+- Statistical inference  
+- Research methodologies  
+- Statistical analysis  
+- Machine learning  
+""")
 
-st.subheader("Hard Skills:", anchor=False)
-st.write("""
-            - Clear understanding of statistical principles and their applications
-            - Strong Python programing skils
-            - Experience training and deploying Machine Learning models
+# --- SOFT SKILLS ---- #
+st.subheader("Soft Skills")
+st.markdown("""
+- Public speaking, 
+- Collaboration, 
+- Time management  
+- Report writing in Microsoft Word, PowerPoint presentations  
+- Project management  
+""")
+
+# --- PUBLICATIONS ---- #
+
+st.subheader("Publications (Authors listed alphabetically):", anchor=False)
+st.markdown("""
+            - El-Khatib, Y., Makumbe, Z. S., & Vives, J. (2025). Decomposition of the option pricing formula for infinite activity jump-diffusion stochastic volatility models. *Mathematics and Computers in Simulation*, 231, 276-293.
+            - El-Khatib, Y., Makumbe, Z. S., & Vives, J. (2024). Approximate option pricing under a two-factor Heston–Kou stochastic volatility model. *Computational Management Science*, 21(1), 3.
+            - El-Khatib, Y., Goutte, S., Makumbe, Z. S., & Vives, J. (2023). A hybrid stochastic volatility model in a Lévy market. *International Review of Economics & Finance*, 85, 220-235.
+            - El-Khatib, Y., Goutte, S., Makumbe, Z. S., & Vives, J. (2022). Approximate pricing formula to capture leverage effect and stochastic volatility of a financial asset. *Finance Research Letters*, 44, 102072.
             """)
