@@ -14,7 +14,7 @@ project_2_page = st.Page(page="Projects/TS_Proj1_Analysis/TS_Proj01_tickerPlot.p
                          icon = "📈",)
 project_3_page = st.Page(page="Projects/TS_Proj2_Forecasting/TS_Proj02_Forecast.py",
                          title = "Forecasting Models",
-                         icon = "📈",)
+                         icon = "💹",)
 
 # ------ NAVIGATION SETUP WITH SECTIONS----- #
 pg = st.navigation({

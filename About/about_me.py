@@ -40,7 +40,7 @@ with col1:
 - Stochastic modelling  
 - Stochastic differential equations  
 - Monte Carlo simulation  
-- Options pricing  
+- Options pricing & Black-Scholes-Fischer model
 - Lévy processes  
 - Model calibration  
 """)
