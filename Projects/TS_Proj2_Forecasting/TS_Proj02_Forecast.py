@@ -1,9 +1,13 @@
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import ElasticNet
 import streamlit as st
 import pandas as pd
 import numpy as np
 import os
 import yfinance as yf
 import statsmodels.api as sm
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score as outOfSampleR2
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Gets current script's directory
 DATA_DIR = os.path.join(BASE_DIR, "Data", "Sources")
@@ -256,7 +260,7 @@ def data_loading(ticker = 'MSFT',end_date='2024-12-31'):
         # ticker_df['xs_ret'] = ticker_df['mom1m'] - macro['DGS10']
         # ticker_df = pd.concat([ticker_df,snp500], axis=1)
         return df#regress_on_mkt(df,snp500, ticker, window_size=36)
-    def fetch_yahoo_data(ticker, START_DATE='1990-01-01', END_DATE = end_date,
+    def fetch_yahoo_data(ticker, START_DATE='1985-01-01', END_DATE = end_date,
                         snp500 = None, technicals=False):
         """
         Fetch monthly stock market data from Yahoo Finance and compute additional metrics.
@@ -307,7 +311,7 @@ def data_loading(ticker = 'MSFT',end_date='2024-12-31'):
             print(f"An error occurred: {e}")
             return None
 
-    def get_economic_data(start_date  = '1957-03-01', end_date    = '2020-12-31'):            
+    def get_economic_data(start_date  = '1957-03-01', end_date= '2020-12-31'):            
         file_path = os.path.join(DATA_DIR, "EconomicData.csv")
         print(f"File path: {file_path}")
         if os.path.exists(file_path):
@@ -341,9 +345,9 @@ def data_loading(ticker = 'MSFT',end_date='2024-12-31'):
         else:  
             macro = get_economic_data(start_date=start_date, end_date=end_date)
             snp500 = fetch_yahoo_data(ticker='^GSPC',
-                                        START_DATE=start_date, END_DATE=end_date)
+                                        START_DATE='1987-01-01', END_DATE=end_date)
             firm = fetch_yahoo_data(ticker=ticker,
-                                    START_DATE=start_date, END_DATE=end_date,
+                                    START_DATE='1987-01-01', END_DATE=end_date,
                                     snp500=snp500,
                                     technicals=True)
             macro.set_index("date", inplace=True)
@@ -380,7 +384,143 @@ def data_loading(ticker = 'MSFT',end_date='2024-12-31'):
     df = get_data(ticker=ticker, start_date='1990-01-01',end_date=end_date)
     return df
 
+def train_test_split(df, test_size=0.2, val_size=0.1):
+    """
+    Splits the DataFrame into training and testing sets.
 
+    Parameters:
+        df (DataFrame): The DataFrame to split.
+        test_size (float): The proportion of the dataset to include in the test split.
+
+    Returns:
+        tuple: A tuple containing the training and testing DataFrames.
+    """
+    n = len(df)
+    train_size = int(n * (1 - test_size-val_size))
+    val_size = int(n * val_size)
+    train_df = df.iloc[:train_size]
+    val_df = df.iloc[train_size:train_size + val_size]
+    test_df = df.iloc[train_size + val_size:]
+    return train_df, val_df, test_df
+
+def ols_model(train_df, val_df, test_df, ticker):
+    """
+    Trains an OLS regression model on the training data and evaluates it on validation and test data.
+
+    Parameters:
+        train_df (DataFrame): Training data.
+        val_df (DataFrame): Validation data.
+        test_df (DataFrame): Test data.
+        ticker (str): The stock ticker symbol.
+
+    Returns:
+        tuple: A tuple containing the trained model, validation R^2, and test R^2.
+    """
+    X_train = train_df.drop(columns=[ticker+'.Ret']).apply(pd.to_numeric, errors='coerce')
+    y_train = train_df[ticker+'.Ret'].apply(pd.to_numeric, errors='coerce')
+    X_val = val_df.drop(columns=[ticker+'.Ret']).apply(pd.to_numeric, errors='coerce')
+    y_val = val_df[ticker+'.Ret'].apply(pd.to_numeric, errors='coerce')
+    X_test = test_df.drop(columns=[ticker+'.Ret']).apply(pd.to_numeric, errors='coerce')
+    y_test = test_df[ticker+'.Ret'].apply(pd.to_numeric, errors='coerce')
+
+    # Add constant for OLS
+    X_train = sm.add_constant(X_train)
+    X_val = sm.add_constant(X_val)
+    X_test = sm.add_constant(X_test)
+
+    # Train OLS model
+    model = sm.OLS(y_train, X_train).fit()
+
+    # Evaluate on validation set
+    y_val_hat = model.predict(X_val)
+    val_r2 = outOfSampleR2(y_val, y_val_hat)
+    val_mse = mean_squared_error(y_val, y_val_hat)
+
+    # Evaluate on test set
+    y_test_hat = model.predict(X_test)
+    test_r2 = outOfSampleR2(y_test, y_test_hat)
+    # Calculate Mean Squared Error
+    test_mse = mean_squared_error(y_test, y_test_hat)
+
+    return model, val_r2, test_r2, val_mse, test_mse
+
+def elastic_net_model(train_df, val_df, test_df, ticker, alpha=0.1, l1_ratio=0.5):
+    """
+    Trains an Elastic Net regression model on the training data and evaluates it on validation and test data.
+
+    Parameters:
+        train_df (DataFrame): Training data.
+        val_df (DataFrame): Validation data.
+        test_df (DataFrame): Test data.
+        ticker (str): The stock ticker symbol.
+        alpha (float): Regularization strength.
+        l1_ratio (float): The Elastic Net mixing parameter.
+
+    Returns:
+        tuple: A tuple containing the trained model, validation R^2, and test R^2.
+    """
+    
+    
+    
+    X_train = train_df.drop(columns=[ticker+'.Ret'])
+    y_train = train_df[ticker+'.Ret']
+    X_val = val_df.drop(columns=[ticker+'.Ret'])
+    y_val = val_df[ticker+'.Ret']
+    X_test = test_df.drop(columns=[ticker+'.Ret'])
+    y_test = test_df[ticker+'.Ret']
+
+    # Train Elastic Net model
+    regrElastic2 = ElasticNet(max_iter = 10000)
+
+    search = GridSearchCV(estimator = regrElastic2,
+                      param_grid = {'alpha': np.logspace(-5,2,8),
+                                    'l1_ratio': np.linspace(0,1,20)},
+                      scoring='neg_mean_squared_error',
+                      n_jobs = 1,
+                      refit = True,
+                      cv = 10);
+
+    search.fit(X_train, y_train);
+    # get best parameters
+    alpha = search.best_params_['alpha']
+    l1_ratio = search.best_params_['l1_ratio']
+    model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
+    model.fit(X_train, y_train)
+
+    # Evaluate on validation set
+    y_val_hat = model.predict(X_val)
+    val_r2 = outOfSampleR2(y_val, y_val_hat)
+    val_mse = mean_squared_error(y_val, y_val_hat)
+
+    # Evaluate on test set
+    y_test_hat = model.predict(X_test)
+    test_r2 = outOfSampleR2(y_test, y_test_hat)
+    # Calculate Mean Squared Error
+    test_mse = mean_squared_error(y_test, y_test_hat)
+
+    return model, val_r2, test_r2, val_mse, test_mse
+# --- PAGE SETUP ----#
+def plot_forcasts(model,plot_object, ticker, test_df):
+    """
+    Plots the actual vs predicted values for the given model and test data.
+
+    Parameters:
+        model: The trained model.
+        plot_object: The plot object to use for plotting.
+        ticker (str): The stock ticker symbol.
+        test_df (DataFrame): The test data containing actual values.
+    """
+    y_test = test_df[ticker+'.Ret']
+    X_test = test_df.drop(columns=[ticker+'.Ret'])
+    X_test = sm.add_constant(X_test)
+    y_pred = model.predict(X_test)
+
+    # Plot actual vs predicted
+    plot_object.line(test_df['date'], y_test, name='Actual', line_width=2, color='blue')
+    plot_object.line(test_df['date'], y_pred, name='Predicted', line_width=2, color='red')
+    plot_object.title.text = f"{ticker} Stock Price Forecast"
+    plot_object.xaxis.axis_label = "Date"
+    plot_object.yaxis.axis_label = "Returns"
 st.markdown(
     """
     <style>
@@ -424,7 +564,6 @@ with st.sidebar:
     data_check = st.checkbox("Run MSFT EDA?")
     default_analysis = st.checkbox("Run MSFT stock forecasting?")
     custom_ticker_analysis = st.checkbox("Logistic Regression?")
-
 if feature_check:
     st.subheader("Feature Explanations")
     df_features = displayFeatures()
@@ -436,3 +575,41 @@ if default_analysis or data_check:
     st.dataframe(df.head())
     st.write(f"Total number of rows: {len(df)}")
     st.write("This section will contain the analysis and forecasting results for MSFT stock prices.")
+if default_analysis:
+    st.subheader("MSFT Stock Price Forecasting Results")
+    # Placeholder for forecasting results
+    model_metrics = {}
+    models = ['OLS', 'Elastic Net']
+    test_mse_ = []
+    val_mse_ = []
+    test_rSquared_ = []
+    val_rSquared_ = []
+    # Normalize the data using train data
+    df = df.dropna()  # Drop rows with NaN values  
+    train_df, val_df, test_df = train_test_split(df, test_size=0.2, val_size=0.1)
+    # normalise and repeat train test split
+    df_normalised = (df - train_df.mean()) / train_df.std()
+    train_df, val_df, test_df = train_test_split(df_normalised, test_size=0.2, val_size=0.1)
+    #train and evaluate models
+    st.write(f"### Linear Model")
+    for mod in models:
+        if mod == 'OLS':
+            model, val_r2, test_r2, val_mse, test_mse = ols_model(train_df, val_df, test_df, ticker='MSFT')
+        elif mod == 'Elastic Net':
+            model, val_r2, test_r2, val_mse, test_mse = elastic_net_model(train_df, val_df, test_df, ticker='MSFT')
+        
+        test_mse_.append(test_mse)
+        val_mse_.append(val_mse)
+        val_rSquared_.append(val_r2)
+        test_rSquared_.append(test_r2)
+    model_metrics = {
+        'Models': models,
+        'Validation R^2': val_rSquared_,
+        'Test R^2': test_rSquared_,
+        'Validation MSE': val_mse_,
+        'Test MSE': test_mse_
+    }
+    # save results in a DataFrame
+    metrics_df = pd.DataFrame(model_metrics)
+    # Print Perfomance metrics: 
+    st.write(metrics_df)
