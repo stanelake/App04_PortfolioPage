@@ -9,6 +9,13 @@ import statsmodels.api as sm
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score as outOfSampleR2
 
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.layers import InputLayer, Dense, Flatten, Reshape
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.callbacks import EarlyStopping
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Gets current script's directory
 DATA_DIR = os.path.join(BASE_DIR, "Data", "Sources")
 
@@ -521,6 +528,126 @@ def plot_forcasts(model,plot_object, ticker, test_df):
     plot_object.title.text = f"{ticker} Stock Price Forecast"
     plot_object.xaxis.axis_label = "Date"
     plot_object.yaxis.axis_label = "Returns"
+
+def generate_FFNN(pastWindow, NUM_COLUMNS,
+          hidden_layer_sizes=[64, 64], output_dim=1,
+          epochs=100, learning_rate=3e-3, batch_size=32, flatten =False,
+          normalise=False, init_kernel=None, init_bias=None,
+          optimizer='adam', loss='mse', metrics=None,
+          verbose=1, callbacks=None, modelName=''):
+    """
+    Builds a customizable feedforward neural network.
+
+    Args:
+        pastWindow (int): Input time window size.
+        NUM_COLUMNS (int): Number of input features.
+        hidden_layer_sizes (list): List of hidden layer sizes.
+        output_dim (int): Size of the output layer.
+        epochs (int): Number of training epochs.
+        learning_rate (float): Learning rate for the optimizer.
+        batch_size (int): Training batch size.
+        normalise (bool): Whether to use batch normalization.
+        init_kernel, init_bias: Initializers for kernel and biases.
+        optimizer (str): Optimizer to use.
+        loss (str): Loss function.
+        metrics (list): List of metrics to monitor.
+        verbose (int): Verbosity level for training.
+        callbacks (list): List of Keras callbacks.
+        modelName (str): Name of the model.
+
+    Returns:
+        model: Trained Keras model.
+        history: Training history object.
+    """
+    if metrics is None:
+        metrics = ['mae', 'mse']
+
+    # Instantiate the model
+    model = Sequential(name=modelName)
+
+    # Input and Flatten
+    model.add(InputLayer(input_shape=(pastWindow, NUM_COLUMNS)))
+    if flatten:
+      model.add(Flatten())
+
+    # Hidden Layers
+    for i, layer_size in enumerate(hidden_layer_sizes):
+        model.add(Dense(layer_size, activation='relu',
+                        kernel_initializer=init_kernel,
+                        bias_initializer=init_bias,
+                        name=f"Hidden_{i+1}"))
+        if normalise:
+            model.add(keras.layers.BatchNormalization())
+
+    # Output Layer
+    model.add(Dense(output_dim, name="Output"))
+
+    # Compile the model
+    model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+
+    # Summarize the model
+    model.summary()
+
+    return model
+
+def movingWindow(inData,windowSize = 5, horizon = 2,
+                 trainProp = 0.7, valProp = 0.15, testProp = .15):
+        """
+        function that reformats data for a auto-regresive timeseries
+
+        Parameters:
+        ===========
+        inData: array-like.
+            data for the time series method
+
+        windowSize: int
+            number of look back lags
+
+        horizon: int
+            number of future time steps to predict
+
+        Returns:
+        ==========
+        xData: array-like
+            Preprocessed X values
+        yData: array-like
+            Preprocessed Y values
+        """
+        X, Y = [], []
+
+        arr = np.array(inData)
+
+        for i in range(windowSize, len(arr) - horizon +1):
+            X.append(arr[i - windowSize:i, :-1])
+            Y.append(arr[i + horizon - 1:i + horizon, -1])
+        X = np.array(X); Y = np.array(Y)
+        dim = X.shape
+        # Train-test Split
+        trainLen = int(dim[0]*trainProp)
+        valLen = int(dim[0]*valProp)
+        testLen = dim[0] - trainLen - valLen
+
+        xTrain, yTrain = X[:trainLen,:], Y[:trainLen,:]
+        xVal, yVal = X[trainLen:trainLen+valLen,:], Y[trainLen:trainLen+valLen,:]
+        xTest, yTest = X[-testLen:,:], Y[-testLen:,:]
+        return (np.array(X), np.array(Y),
+                np.array(xTrain), np.array(yTrain),
+                np.array(xVal), np.array(yVal),
+                np.array(xTest), np.array(yTest))
+
+def trainModel(model, epochs=100, batch_size =32,
+               trainData = (None,None),
+               validation_data = (None,None),
+               verbose= 0, earlyStop = None):
+    #Train the model
+    results = model.fit(x=trainData[0], y=trainData[1],
+              epochs=epochs, batch_size =batch_size,
+              validation_data = validation_data,
+              verbose= verbose, callbacks = [earlyStop])
+
+    return model, results
+
+
 st.markdown(
     """
     <style>
@@ -563,7 +690,8 @@ with st.sidebar:
     feature_check = st.checkbox("Display Feature explanations?")
     data_check = st.checkbox("Run MSFT EDA?")
     default_analysis = st.checkbox("Run MSFT stock forecasting?")
-    custom_ticker_analysis = st.checkbox("Logistic Regression?")
+    #ffnn_analysis = st.checkbox("Launch feedforward neural network model?")
+df = None
 if feature_check:
     st.subheader("Feature Explanations")
     df_features = displayFeatures()
@@ -575,7 +703,7 @@ if default_analysis or data_check:
     st.dataframe(df.head())
     st.write(f"Total number of rows: {len(df)}")
     st.write("This section will contain the analysis and forecasting results for MSFT stock prices.")
-if default_analysis:
+if default_analysis or ffnn_analysis:
     st.subheader("MSFT Stock Price Forecasting Results")
     # Placeholder for forecasting results
     model_metrics = {}
@@ -591,12 +719,50 @@ if default_analysis:
     df_normalised = (df - train_df.mean()) / train_df.std()
     train_df, val_df, test_df = train_test_split(df_normalised, test_size=0.2, val_size=0.1)
     #train and evaluate models
-    st.write(f"### Linear Model")
+    st.write(f"### Linear Models")
     for mod in models:
+        if ffnn_analysis:
+            models.append('FFNN')
         if mod == 'OLS':
-            model, val_r2, test_r2, val_mse, test_mse = ols_model(train_df, val_df, test_df, ticker='MSFT')
+            model1, val_r2, test_r2, val_mse, test_mse = ols_model(train_df, val_df, test_df, ticker='MSFT')
         elif mod == 'Elastic Net':
-            model, val_r2, test_r2, val_mse, test_mse = elastic_net_model(train_df, val_df, test_df, ticker='MSFT')
+            model2, val_r2, test_r2, val_mse, test_mse = elastic_net_model(train_df, val_df, test_df, ticker='MSFT')
+        elif mod == 'FFNN':
+            # Prepare data for FFNN
+            pastWindow = 12  # 12 months lookback
+            NUM_COLUMNS = len(train_df.columns) - 1  # Exclude the target column    
+            xData, yData, xTrain, yTrain, xVal, yVal, xTest, yTest = movingWindow(
+                df_normalised.values, windowSize=pastWindow, horizon=1,
+                trainProp=0.7, valProp=0.15, testProp=0.15
+            )
+            # Generate FFNN model
+            hidden_layers_ = [[64, 64],
+                             [64, 64, 64],
+                             [64, 64, 64, 64],
+                             [64, 64, 64, 64, 64]]
+            model3_2hid = generate_FFNN(
+                pastWindow=pastWindow, NUM_COLUMNS=NUM_COLUMNS,
+                hidden_layer_sizes=[64, 64], output_dim=1,
+                epochs=100, learning_rate=3e-3, batch_size=32,
+                flatten=False, normalise=False,
+                init_kernel='he_normal', init_bias='zeros',
+                optimizer='adam', loss='mse', metrics=['mae', 'mse'],
+                verbose=1, callbacks=[EarlyStopping(monitor='val_loss', patience=10)],
+                modelName='FFNN_MSFT'
+            )
+            # Train the FFNN model
+            model3, history = trainModel(
+                model=model3_2hid, epochs=100, batch_size=32,
+                trainData=(xTrain, yTrain), validation_data=(xVal, yVal),
+                verbose=1, earlyStop=EarlyStopping(monitor='val_loss', patience=10)
+            )
+            # Evaluate the FFNN model
+            y_val_hat = model3.predict(xVal)
+            val_r2 = outOfSampleR2(yVal, y_val_hat)
+            val_mse = mean_squared_error(yVal, y_val_hat)   
+            y_test_hat = model3.predict(xTest)
+            test_r2 = outOfSampleR2(yTest, y_test_hat)  
+            test_mse = mean_squared_error(yTest, y_test_hat)
         
         test_mse_.append(test_mse)
         val_mse_.append(val_mse)
