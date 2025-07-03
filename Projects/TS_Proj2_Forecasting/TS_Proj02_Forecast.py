@@ -690,7 +690,8 @@ with st.sidebar:
     feature_check = st.checkbox("Display Feature explanations?")
     data_check = st.checkbox("Run MSFT EDA?")
     default_analysis = st.checkbox("Run MSFT stock forecasting?")
-    #ffnn_analysis = st.checkbox("Launch feedforward neural network model?")
+    ffnn_analysis = st.checkbox("Launch feedforward neural network model?")
+    ffnn_analysis = False
 df = None
 if feature_check:
     st.subheader("Feature Explanations")
