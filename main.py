@@ -5,7 +5,6 @@ about_page = st.Page(page = "About/about_me.py",
                      title = "About Me",
                      icon="👤",#"Images/home_icon.png",
                      default = True,)
-
 project_1_page = st.Page(page="Projects/Cls_Proj1_Iris/Cls_Proj_01.py",
                          title = "Iris Flower Classification",
                          icon = "🌼",)
