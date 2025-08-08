@@ -18,16 +18,16 @@ project_3_page = st.Page(page="Projects/TS_Proj2_Forecasting/TS_Proj02_Forecast.
 
 # ------ NAVIGATION SETUP WITH SECTIONS----- #
 pg = st.navigation({
+                     "Info": [about_page],
                     "Projects": [project_1_page,
                                  project_2_page,
-                                 project_3_page],
-                    "Info": [about_page]
+                                 project_3_page]
                     }
                 )
 
 # ------- GLOBAL PAGE SETUP --------------- #
 st.logo("Images/Logo4.png", size="large")
-st.sidebar.text("Making numbers sing!")
+# st.sidebar.text("Making numbers sing!")
 
 
 # ------ RUN NAVIGATION ----#
