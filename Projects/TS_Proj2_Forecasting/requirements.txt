@@ -4,3 +4,9 @@ pandas
 numpy
 requests
 statsmodels
+tensorflow
+scikit-learn
+streamlit
+os
+seaborn
+matplotlib  
