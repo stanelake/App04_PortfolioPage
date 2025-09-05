@@ -11,16 +11,12 @@ project_1_page = st.Page(page="Projects/Cls_Proj1_Iris/Cls_Proj_01.py",
 project_2_page = st.Page(page="Projects/TS_Proj1_Analysis/TS_Proj01_tickerPlot.py",
                          title = "Econometric Analysis",
                          icon = "📈",)
-project_3_page = st.Page(page="Projects/TS_Proj2_Forecasting/TS_Proj02_Forecast.py",
-                         title = "Forecasting Models",
-                         icon = "💹",)
 
 # ------ NAVIGATION SETUP WITH SECTIONS----- #
 pg = st.navigation({
                      "Info": [about_page],
                     "Projects": [project_1_page,
-                                 project_2_page,
-                                 project_3_page]
+                                 project_2_page]
                     }
                 )
 
