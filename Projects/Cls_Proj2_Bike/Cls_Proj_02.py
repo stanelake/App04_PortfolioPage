@@ -12,11 +12,13 @@ import seaborn as sns
 from pathlib import Path
 
 sns.set_theme()
+base_dir = Path(__file__).resolve().parent
+base_dir = base_dir / "data" / "BBC.csv"
 
 def load_process_data(dropped_col=None):
     """Load data from a CSV file."""
-    base_dir = Path(__file__).resolve().parent
-    full_path = base_dir / "data" / "BBC.csv"
+    
+    full_path = base_dir / "BBC.csv"
     df = pd.read_csv(full_path)
     if dropped_col is not None:
         df = df.drop(columns=[dropped_col])
@@ -188,7 +190,8 @@ def drop_out_analysis():
              """)
 
     # Save dataframe to file
-    dropped_model_results.to_csv('data/model_drop_out_analysis.csv')
+    datadir = base_dir / "data"
+    dropped_model_results.to_csv(datadir / "model_drop_out_analysis.csv")
 
 
 drop_out_analysis()
