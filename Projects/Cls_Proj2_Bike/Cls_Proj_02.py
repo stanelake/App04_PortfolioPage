@@ -9,12 +9,15 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier # import KNN
 from sklearn.svm import SVC
 import seaborn as sns
+from pathlib import Path
 
 sns.set_theme()
 
-def load_process_data(file_path, dropped_col=None):
+def load_process_data(dropped_col=None):
     """Load data from a CSV file."""
-    df = pd.read_csv(file_path)
+    base_dir = Path(__file__).resolve().parent
+    full_path = base_dir / "data" / "BBC.csv"
+    df = pd.read_csv(full_path)
     if dropped_col is not None:
         df = df.drop(columns=[dropped_col])
     array = df.values
@@ -72,7 +75,7 @@ def st_print1():
     )
 
 st_print1()
-X, Y, df = load_process_data('Projects/Cls_Proj2_Bike/data/BBC.csv')
+X, Y, df = load_process_data()
 def st_print2():
     st.write("""
             ## Introduction: 
@@ -146,7 +149,7 @@ def drop_out_analysis():
     base_performance = model_results.loc['Random Forest', 'Accuracy']
     dropped_model_results = {}
     for drop_col in columns:
-        X_dropped, Y_dropped, _ = load_process_data('Projects/Cls_Proj2_Bike/data/BBC.csv', dropped_col=drop_col)
+        X_dropped, Y_dropped, _ = load_process_data(dropped_col=drop_col)
         X_train_dropped, X_test_dropped, Y_train_dropped, Y_test_dropped = data_split(X_dropped, Y_dropped, test_size=0.3)
         scaler_dropped = StandardScaler()
         X_train_dropped_scaled = scaler_dropped.fit_transform(X_train_dropped)
