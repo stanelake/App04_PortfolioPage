@@ -103,6 +103,14 @@ def exploratoryDataAnalysis():
     # Convert X into a pandas DataFrame
     st.subheader('Exploratory Data Analysis')
     st.write("""
+             - The first stage of the application focuses on understanding the data before modelling, highlighting the role of exploratory analysis in responsible and effective machine learning.
+
+            - Using the Iris dataset, the app presents an initial preview of the data and examines feature distributions and class separability, with particular attention to petal measurements. Through interactive visualisations, users can observe how different flower species separate in feature space, providing intuition about which variables are likely to be informative for classification.
+
+            - A pairwise feature visualisation is generated to reveal relationships between input variables and their association with target classes. This step supports model interpretability and informed model selection, illustrating why certain models may perform better given the structure of the data.
+
+            - This exploratory stage reinforces the importance of data understanding as a prerequisite for predictive modelling, aligning with best practices in applied machine learning and data-driven decision-making.
+             
             #### DataFrame Preview
             """)
     st.write(input.head(3))
@@ -156,7 +164,23 @@ def compareModel(data = dataPrep()):
                             'Test Score': testScore})
     perf_df = perf_df.rename(index={0: 'Rand. For.', 1: 'Log. Regr.'})
     st.write("""
-    ## Camparing model performance
+        ## Camparing model performance: Model Performance Summary
+
+        - This section compares the performance of the deployed models using both training and test accuracy scores, providing insight into model fit and generalisation. Displaying both metrics allows users to assess whether a model is learning meaningful patterns or overfitting to the training data.
+
+        ### Prediction Consistency
+
+        - For the user-defined input values, both models produce the same predicted flower species, indicating strong class separability for the selected features. While the predicted class is identical, the associated probability distributions may differ, reflecting differences in how each model represents uncertainty and decision boundaries.
+
+        ### Key Takeaways
+
+        - Comparable training and test scores suggest good generalisation performance.
+
+        - Agreement between models increases confidence in the predicted outcome.
+
+        - Differences in probability estimates highlight the trade-off between model simplicity (Logistic Regression) and model flexibility (Tree-based models).
+
+        - Model comparison reinforces the importance of evaluating both performance metrics and interpretability, rather than relying on a single score. This comparative approach demonstrates how multiple models can be evaluated systematically to support robust, transparent, and defensible predictions.
              """)
     st.write(perf_df)
 
@@ -172,9 +196,13 @@ def randForestModel(x_array,y_array, user_df = None, classifier = None,
         prediction_prob = classifier.predict_proba(user_df)
     if not ((feature_names is None) and (target_names is None)):
         st.write("""
-                 - *"One Tree to Rule Them All?"*
-                - This an ensemble method. Meaning that there are several trees working together to make decisions
-                 - Use the slider below to visualise the individual trees
+                 - This section introduces Random Forests, an ensemble learning approach in which multiple decision trees work together to produce more accurate and robust predictions than a single tree alone.
+
+                - Rather than relying on one “optimal” tree, the model aggregates the decisions of many trees trained on different subsets of the data. This reduces overfitting and improves generalisation, particularly in datasets where individual trees may capture noise.
+
+                - The application allows users to visualise individual trees within the forest using the slider below, making the ensemble structure transparent. By exploring how different trees make slightly different decisions, users gain insight into why ensemble methods tend to outperform single models and how collective decision-making improves predictive stability.
+
+                - This interactive visualisation supports explainable AI, helping users understand not only what the model predicts, but how those predictions are formed.
                  """)
         tree_index = st.slider("Select Tree Index", 0, len(classifier.estimators_) - 1, 0)
 
@@ -251,16 +279,19 @@ st.markdown(
 # Header with the project title and your name
 st.markdown(
     """
-    <div class="project-title">Iris Flower Classifier</div>
+    <div class="project-title">Interactive Model Selection and Prediction Confidence Analysis: Iris Flower Classifier</div>
     """,
     unsafe_allow_html=True
 )
 st.write("""
          ## Introduction: 
-         - This app trains and diploys a tree model and a logistic regression model to predict flower type give set of four features.
-         - The user can choose which model to use and they can also input artificial data. 
-         - The app produces comparisons between the two models.
-         - For the user defined feature values a prediction is made and its probabilities are provided.
+    - This application explores a fundamental applied machine learning question: how model choice affects predictions and confidence, even when using the same input data.
+
+    - Using a well-known multiclass classification problem, the app trains and deploys a Decision Tree and Logistic Regression model to predict flower species based on four input features. Users can dynamically select which model to deploy and input custom feature values, enabling hands-on exploration of model behaviour.
+
+    - A key focus of the application is comparative model analysis. By evaluating prediction outcomes and associated probability estimates, the app highlights differences in decision boundaries, model confidence, and interpretability between linear and tree-based models.
+
+    - By allowing users to experiment with artificial and user-defined inputs, the application demonstrates how model assumptions influence predictions, supporting informed model selection and transparent AI deployment. The app provides an intuitive interface for understanding prediction uncertainty, making it particularly relevant for education, explainable AI, and applied analytics.
          """)
 
 st.sidebar.header('User Input Parameters')
@@ -277,6 +308,12 @@ with st.sidebar:
 
 st.subheader('Class labels and their index numbers')
 st.write(list(iris_data.target_names))
+st.write("""
+- The Iris data set has a total of 3 classes.
+- The class labels are 0, 1, and 2 which correspond to 'setosa', 'versicolor', and 'virginica' respectively.
+- The model will predict the class label based on the input features.
+         """)
+
 
 if eda_check:
     exploratoryDataAnalysis()
@@ -295,17 +332,22 @@ if rf_check or lr_check:
 
     if lr_check:
         lr_results = []
-        st.subheader('Logistic Regression Model')
-        lr_mod, pred, pred_prob = logisticRegression(X,Y,df)
-        lr_results.append(iris_data.target_names[pred])
-        lr_results = lr_results + list(pred_prob[0])
-    st.subheader('User Input Parameters')
-    st.write('''
-             - Use the sliders in the left panel to change the inputs.
-             - Observe the changes in the prediction and the prediction probabilities.''')
-    st.write(df)
+        st.subheader('Logistic Regression Model: Interpretable Baseline and Probability-Driven Decisions')
+        st.write("""
+        - This section uses Logistic Regression as a transparent, interpretable baseline model for classification. The model learns a linear relationship between input features and class outcomes, making it particularly useful for understanding how individual variables influence predictions.
+
+        - Once trained, the model can be applied to user-defined inputs, producing both class predictions and associated probabilities. These probability estimates provide insight into the model’s confidence, supporting more informed decision-making rather than relying solely on hard classifications.
+
+        - By comparing Logistic Regression results with tree-based models elsewhere in the app, users can observe how model assumptions affect predictions, confidence, and interpretability. This highlights the trade-off between model simplicity and flexibility, an important consideration in applied machine learning and responsible AI deployment.
+                 """)
     st.write("""
-                #### Prediction
+                #### Prediction Results and Model Confidence
+
+            - Each selected model generates a predicted flower species based on the input feature values. Alongside the predicted class, the application displays the probability associated with each possible class, providing insight into the model's confidence.
+
+            - Presenting prediction probabilities allows users to move beyond a single label and assess prediction certainty and ambiguity, particularly in cases where classes overlap. This supports more informed interpretation of results and highlights how different models may express confidence differently, even when making the same prediction.
+
+            - By combining predicted outcomes with probability estimates, the app reinforces best practices in transparent and explainable AI, helping users understand not only what the model predicts, but how strongly it supports that prediction.
                 """)
     results = pd.DataFrame(columns=colz,
                            index = ['Random Forest', 'Logistic Regr'])
