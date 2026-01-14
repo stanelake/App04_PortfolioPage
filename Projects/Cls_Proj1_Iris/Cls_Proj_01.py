@@ -279,7 +279,7 @@ st.markdown(
 # Header with the project title and your name
 st.markdown(
     """
-    <div class="project-title">Interactive Model Selection and Prediction Confidence Analysis: Iris Flower Classifier</div>
+    <div class="project-title">Interactive Model Selection \& Confidence Analysis: Iris Flower Classifier</div>
     """,
     unsafe_allow_html=True
 )
@@ -318,8 +318,8 @@ st.write("""
 if eda_check:
     exploratoryDataAnalysis()
 if rf_check or lr_check:
-    rf_results = [None]*4
-    lr_results = [None]*4
+    rf_results = None
+    lr_results = None
     colz = ['Prediction'] + [name.capitalize() + ' Prob.' for name in iris_data.target_names]
     if rf_check: 
         rf_results = [] 
@@ -351,10 +351,10 @@ if rf_check or lr_check:
                 """)
     results = pd.DataFrame(columns=colz,
                            index = ['Random Forest', 'Logistic Regr'])
-    if not (rf_results[0] is None):
+    if not (rf_results is None):
         for val, col in zip(rf_results, colz):
             results.at['Random Forest', col] = val
-    if not (lr_results[0] is None):            
+    if not (lr_results is None):            
         for val, col in zip(lr_results,colz):
             results.at['Logistic Regr', col] = val
 
